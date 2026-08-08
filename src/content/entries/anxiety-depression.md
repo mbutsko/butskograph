@@ -10,11 +10,17 @@ edges:
     relation: echoes
     note: "the anxiety got worse as the drinking stopped"
   - target: calisthenics
-    relation: tension
-    note: "the routine holds every morning while the interest in everything else doesn't"
+    relation: echoes
+    note: "still done every morning, named among the things that carry on regardless"
   - target: running
-    relation: tension
-    note: "running persists through the anhedonia and is listed as one of its symptoms"
+    relation: echoes
+    note: "named twice — among what still happens, and among the hobbies that serve some other end"
+  - target: temper
+    relation: echoes
+    note: "the same mind, running flat most of the time and hot occasionally"
+  - target: food-obsession
+    relation: echoes
+    note: "compulsion all day alongside the inability to take pleasure in much"
 source: Site/Anxiety & Depression.md
 sourceModified: 2026-08-08T12:17:11.226Z
 ---

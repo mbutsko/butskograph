@@ -152,8 +152,13 @@ Deploys are git-driven: pushing to `main` builds and ships. `wrangler.jsonc` dec
 site as static assets with no Worker script, so there is no server and no cold start.
 
 ```bash
-npx wrangler deploy   # manual deploy, if you need one
+npm run deploy   # manual deploy, if you need one
 ```
+
+`--no-autoconfig` is not optional. Wrangler's framework detection runs `astro add
+cloudflare` by default, and the `@astrojs/cloudflare` adapter does not build against Astro
+7 — it imports `beginContentEntryCollection` from `astro/app`, which no longer exists. The
+adapter is for server rendering and this site has none, so the fix is to keep it out.
 
 Cloudflare Web Analytics is wired into `Base.astro` behind `PUBLIC_CF_BEACON_TOKEN`. The
 beacon is baked in at build time, so it only appears when that variable is set in the
