@@ -9,6 +9,13 @@ interface Props {
 }
 
 const { title, description } = Astro.props;
+
+/**
+ * Cloudflare Web Analytics. Baked in at build time, so it is only present when the
+ * token is set in the deploy environment — local builds and previews stay silent.
+ * No cookies and no cross-site tracking, which is the reason it is this one.
+ */
+const beacon = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
 ---
 
 <!doctype html>
@@ -37,5 +44,15 @@ const { title, description } = Astro.props;
         }
       }
     </style>
+    {
+      beacon && (
+        <script
+          is:inline
+          defer
+          src="https://static.cloudflareinsights.com/beacon.min.js"
+          data-cf-beacon={JSON.stringify({ token: beacon })}
+        />
+      )
+    }
   </body>
 </html>

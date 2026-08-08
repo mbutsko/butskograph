@@ -146,17 +146,19 @@ node scripts/gen-icons.mjs
 
 Only the icons in the vocabulary ship to the browser.
 
-## Deploying to Fly
+## Deploying to Cloudflare
+
+Deploys are git-driven: pushing to `main` builds and ships. `wrangler.jsonc` declares the
+site as static assets with no Worker script, so there is no server and no cold start.
 
 ```bash
-fly launch --no-deploy   # once
-fly deploy
+npx wrangler deploy   # manual deploy, if you need one
 ```
 
-The Dockerfile builds the site and serves `dist/` from nginx, so there is no Node at
-runtime. The machine scales to zero, which costs roughly nothing when idle at the price of
-a ~1s cold start on the first hit. A plain static host (Cloudflare Pages, Netlify) would be
-free and simpler; Fly makes sense if you want this alongside your other apps.
+Cloudflare Web Analytics is wired into `Base.astro` behind `PUBLIC_CF_BEACON_TOKEN`. The
+beacon is baked in at build time, so it only appears when that variable is set in the
+deploy environment — local builds and previews stay silent. No cookies, no cross-site
+tracking.
 
 ## Layout
 

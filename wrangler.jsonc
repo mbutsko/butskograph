@@ -1,0 +1,12 @@
+{
+  "$schema": "node_modules/wrangler/config-schema.json",
+  "name": "butskograph",
+  "compatibility_date": "2026-08-08",
+  // Pure static site — no `main`, so there is no Worker script, just assets served
+  // from Cloudflare's edge. Requests to static assets are free and uncounted.
+  "assets": {
+    "directory": "./dist",
+    // Astro emits directory-style routes (/e/slug/index.html) and a dist/404.html.
+    "not_found_handling": "404-page"
+  }
+}
