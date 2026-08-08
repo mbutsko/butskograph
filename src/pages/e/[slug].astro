@@ -1,0 +1,303 @@
+---
+import { getCollection, render, type CollectionEntry } from 'astro:content';
+import Base from '../../layouts/Base.astro';
+import { buildGraph } from '../../lib/graph';
+import { plain } from '../../lib/text';
+import { ICONS, ICON_VIEWBOX } from '../../lib/icons.generated';
+import {
+  DOMAIN_LABEL,
+  RELATION_LABEL,
+  TYPE_LABEL,
+  HALF_LIFE_YEARS,
+} from '../../lib/vocab';
+
+export async function getStaticPaths() {
+  const entries = await getCollection('entries');
+  return entries.map((entry) => ({ params: { slug: entry.id }, props: { entry } }));
+}
+
+type Props = { entry: CollectionEntry<'entries'> };
+const { entry } = Astro.props as Props;
+const { Content } = await render(entry);
+
+const all = await getCollection('entries');
+const data = buildGraph(all);
+const node = data.nodes.find((n) => n.id === entry.id);
+const links = data.edges.filter((e) => e.source === entry.id || e.target === entry.id);
+const glyph = entry.data.icon ? ICONS[entry.data.icon] : undefined;
+const statement = entry.data.statement ? plain(entry.data.statement) : undefined;
+
+/** Each connection resolved to the entry on the other end, for icon + title. */
+const connections = links.map((e) => {
+  const otherId = e.source === entry.id ? e.target : e.source;
+  const other = data.nodes.find((n) => n.id === otherId);
+  return {
+    edge: e,
+    otherId,
+    other,
+    label: e.target === entry.id && e.directed ? 'expressed by' : RELATION_LABEL[e.relation],
+    glyph: other?.icon ? ICONS[other.icon] : undefined,
+  };
+});
+
+// Grouped by relation so the label is said once, tensions first — they are the
+// point of the graph, and burying them among echoes flattens them.
+const GROUP_ORDER = ['tension', 'expresses', 'echoes'] as const;
+const groups = GROUP_ORDER.flatMap((relation) => {
+  const inRelation = connections.filter((c) => c.edge.relation === relation);
+  // `expresses` reads in two directions; each direction is its own heading.
+  const labels = [...new Set(inRelation.map((c) => c.label))];
+  return labels.map((label) => ({
+    relation,
+    label,
+    items: inRelation.filter((c) => c.label === label),
+  }));
+});
+---
+
+<Base title={entry.data.title} description={statement ?? entry.data.title}>
+  <p class="back"><a href="/">← the graph</a></p>
+
+  <div class="page">
+    <article>
+      <div class="headline">
+        {
+          glyph && (
+            <svg
+              class="glyph"
+              viewBox={`0 0 ${ICON_VIEWBOX} ${ICON_VIEWBOX}`}
+              width="26"
+              height="26"
+              fill="none"
+              stroke="var(--ink)"
+              stroke-width="1.5"
+              stroke-linecap="round"
+              stroke-linejoin="round"
+              aria-hidden="true"
+              set:html={glyph}
+            />
+          )
+        }
+        <h1 class="voice">{entry.data.title}</h1>
+      </div>
+
+      {statement && <p class="statement">{statement}</p>}
+
+      <p class="meta">
+        {TYPE_LABEL[entry.data.type]} · {DOMAIN_LABEL[entry.data.domain]} · weight {
+          entry.data.weight
+        }
+        {entry.data.retired && ' · retired'}
+      </p>
+
+      <div class="body">
+        <Content />
+      </div>
+
+      <section class="drift-section">
+        <hr class="hairline" />
+        <h2 class="meta">Drift</h2>
+        <p class="drift">
+          {
+            HALF_LIFE_YEARS[entry.data.type] === null
+              ? entry.data.type === 'memory'
+                ? 'A memory is a fact, not a claim. It does not decay — its weight reflects how central it was, not how long ago.'
+                : 'A condition is true until it is not. It does not fade; it gets retired.'
+              : `Last considered and updated ${new Date(
+                  node?.reaffirmed ?? entry.data.date,
+                ).toLocaleDateString('en-US', {
+                  year: 'numeric',
+                  month: 'long',
+                })}, showing at ${node?.effWeight.toFixed(1)} of ${entry.data.weight}.`
+          }
+        </p>
+      </section>
+
+    </article>
+
+    {
+      connections.length > 0 && (
+        <aside class="connections">
+          <h2 class="meta">Connections</h2>
+          {groups.map((g) => (
+            <section class={`group ${g.relation}`}>
+              <h3 class="rel">{g.label}</h3>
+              <ul>
+                {g.items.map((c) => (
+                  <li>
+                    <a href={`/e/${c.otherId}/`}>
+                      {c.glyph ? (
+                        <svg
+                          viewBox={`0 0 ${ICON_VIEWBOX} ${ICON_VIEWBOX}`}
+                          width="17"
+                          height="17"
+                          fill="none"
+                          stroke="currentColor"
+                          stroke-width="1.6"
+                          stroke-linecap="round"
+                          stroke-linejoin="round"
+                          aria-hidden="true"
+                          set:html={c.glyph}
+                        />
+                      ) : (
+                        <span class="dot" aria-hidden="true" />
+                      )}
+                      <span class="label">{c.other?.title ?? c.otherId}</span>
+                    </a>
+                  </li>
+                ))}
+              </ul>
+            </section>
+          ))}
+        </aside>
+      )
+    }
+  </div>
+</Base>
+
+<style>
+  .back {
+    margin: 0 0 3rem;
+    font-size: 13px;
+  }
+  .back a {
+    color: var(--ink-soft);
+    text-decoration: none;
+  }
+  .back a:hover {
+    color: var(--ink);
+  }
+  /* Prose keeps its measure; connections sit alongside it as a margin column. */
+  .page {
+    display: grid;
+    grid-template-columns: minmax(0, var(--measure)) minmax(13rem, 16rem);
+    gap: 1rem 4rem;
+    align-items: start;
+  }
+  article {
+    max-width: var(--measure);
+  }
+  /* Glyph sits on the headline's baseline, reading as part of the title. */
+  .headline {
+    display: flex;
+    align-items: baseline;
+    gap: 0.7rem;
+    margin: 0 0 0.6rem;
+  }
+  .glyph {
+    flex: none;
+  }
+  h1 {
+    font-size: clamp(1.5rem, 4vw, 2.1rem);
+    margin: 0;
+  }
+  .statement {
+    margin: 0 0 1rem;
+    font-style: italic;
+    font-size: 16.5px;
+    line-height: 1.5;
+    color: var(--ink-soft);
+  }
+  .body {
+    margin: 2rem 0 0;
+  }
+  .body :global(p) {
+    margin: 0 0 1rem;
+  }
+  /* Resolved [[wikilinks]] from the vault. Present, not loud. */
+  .body :global(a) {
+    text-decoration-color: var(--hairline);
+    text-underline-offset: 3px;
+  }
+  .body :global(a:hover) {
+    text-decoration-color: var(--ink-soft);
+  }
+  .drift-section {
+    margin-top: 2.5rem;
+  }
+  .drift {
+    margin: 0;
+    color: var(--ink-soft);
+    font-size: 14px;
+  }
+  h2.meta {
+    margin: 0 0 1rem;
+  }
+  .connections {
+    /* Optically level with the headline's cap height. */
+    padding-top: 0.4rem;
+  }
+  .connections .group {
+    margin: 0 0 1.4rem;
+  }
+  .connections .group:last-child {
+    margin-bottom: 0;
+  }
+  .connections ul {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .connections li {
+    padding: 0 0 0.7rem;
+  }
+  .connections li:last-child {
+    padding-bottom: 0;
+  }
+  .connections .rel {
+    margin: 0 0 0.5rem;
+    font-weight: 400;
+    color: var(--ink-soft);
+    font-size: 12px;
+    letter-spacing: 0.04em;
+    text-transform: uppercase;
+  }
+  .connections .group.tension .rel {
+    color: var(--rust);
+  }
+  .connections a {
+    display: flex;
+    align-items: baseline;
+    gap: 0.5rem;
+    font-size: 14.5px;
+    line-height: 1.35;
+    text-decoration: none;
+    color: var(--ink);
+  }
+  .connections a svg {
+    flex: none;
+    /* Baseline-align the glyph with the first line of the title. */
+    transform: translateY(2px);
+    color: var(--ink-soft);
+  }
+  .connections a:hover svg {
+    color: var(--ink);
+  }
+  .connections a .label {
+    text-decoration: underline;
+    text-decoration-color: var(--hairline);
+    text-underline-offset: 3px;
+  }
+  .connections a:hover .label {
+    text-decoration-color: var(--ink-soft);
+  }
+  .connections .dot {
+    flex: none;
+    width: 5px;
+    height: 5px;
+    border-radius: 50%;
+    background: var(--ink-soft);
+    transform: translateY(-3px);
+  }
+
+  @media (max-width: 60rem) {
+    .page {
+      grid-template-columns: minmax(0, var(--measure));
+    }
+    .connections {
+      margin-top: 2.5rem;
+      padding-top: 1.5rem;
+      border-top: 1px solid var(--hairline);
+    }
+  }
+</style>

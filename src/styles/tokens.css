@@ -1,0 +1,78 @@
+/* Design tokens — from the mockups. Adjust here, not at call sites. */
+
+:root {
+  /* Palette */
+  --paper: #fafaf6;
+  --ink: #1c1b19;
+  --ink-soft: #6b6862;
+  --hairline: #dedad1;
+  --ring-guide: #eeebe3;
+  --khaki: #9c9270;
+  --rust: #b5563c; /* reserved: tension edges only */
+
+  /* Type */
+  --serif: 'Fraunces Variable', 'Fraunces', Georgia, serif;
+  --sans: 'Inter Variable', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Scale */
+  /* Prose measure. ~80 characters at the body size — wide enough for the long
+     entries and the tables in Genetics, short enough to still track by eye. */
+  --measure: 42rem;
+  --gap: 1rem;
+}
+
+*,
+*::before,
+*::after {
+  box-sizing: border-box;
+}
+
+html {
+  -webkit-text-size-adjust: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 15px;
+  line-height: 1.6;
+  font-feature-settings: 'cv05' 1;
+  -webkit-font-smoothing: antialiased;
+}
+
+a {
+  color: inherit;
+}
+
+/* The one voice moment. Spend boldness in a single place. */
+.voice {
+  font-family: var(--serif);
+  font-weight: 400;
+  font-optical-sizing: auto;
+  letter-spacing: -0.015em;
+  line-height: 1.25;
+  text-wrap: balance;
+}
+
+.meta {
+  font-size: 11px;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-soft);
+}
+
+.hairline {
+  border: 0;
+  border-top: 1px solid var(--hairline);
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.001ms !important;
+    transition-duration: 0.001ms !important;
+  }
+}

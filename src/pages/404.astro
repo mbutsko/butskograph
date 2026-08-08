@@ -1,0 +1,19 @@
+---
+import Base from '../layouts/Base.astro';
+---
+
+<Base title="Not here">
+  <p class="voice">Nothing at this address.</p>
+  <p><a href="/">Back to the graph</a></p>
+</Base>
+
+<style>
+  .voice {
+    font-size: clamp(1.4rem, 4vw, 2rem);
+    margin: 0 0 1.5rem;
+  }
+  p + p {
+    font-size: 14px;
+    color: var(--ink-soft);
+  }
+</style>
