@@ -81,8 +81,9 @@ const groups = GROUP_ORDER.flatMap((relation) => {
         <h1 class="voice">{entry.data.title}</h1>
       </div>
 
-      {statement && <p class="statement">{statement}</p>}
-
+      {/* No statement deck here. It is the graph's caption and this page's meta
+          description; above the prose it read as a subheading and competed with
+          the title, so the page opens on the note's own words. */}
       <p class="meta">
         {TYPE_LABEL[entry.data.type]} · {DOMAIN_LABEL[entry.data.domain]} · weight {
           entry.data.weight
@@ -182,7 +183,7 @@ const groups = GROUP_ORDER.flatMap((relation) => {
     display: flex;
     align-items: baseline;
     gap: 0.7rem;
-    margin: 0 0 0.6rem;
+    margin: 0 0 0.9rem;
   }
   .glyph {
     flex: none;
@@ -190,13 +191,6 @@ const groups = GROUP_ORDER.flatMap((relation) => {
   h1 {
     font-size: clamp(1.5rem, 4vw, 2.1rem);
     margin: 0;
-  }
-  .statement {
-    margin: 0 0 1rem;
-    font-style: italic;
-    font-size: 16.5px;
-    line-height: 1.5;
-    color: var(--ink-soft);
   }
   .body {
     margin: 2rem 0 0;

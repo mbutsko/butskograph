@@ -16,15 +16,15 @@ import {
   DOMAIN_LABEL,
   RELATION_LABEL,
   TYPE_LABEL,
-  TYPE_NOTE,
   type Domain,
   type EntryType,
   type Relation,
 } from '../lib/vocab';
 import { ICONS, ICON_VIEWBOX } from '../lib/icons.generated';
 import type { GraphData, GraphEdge, GraphNode } from '../lib/graph';
+import '../styles/graph.css';
 
-const VIEW = { w: 720, h: 680, minX: -360, minY: -340 };
+const VIEW = { w: 700, h: 640, minX: -350, minY: -320 };
 const RINGS = [105, 200, 295];
 
 /** Closer for causal relations, loosest for merely thematic ones. */
@@ -38,6 +38,114 @@ type SimEdge = { source: SimNode | string; target: SimNode | string; relation: R
 
 const INK = 'var(--ink)';
 const PAPER = 'var(--paper)';
+
+const LABEL_SIZE = 11;
+/** Clear air between a mark's edge and the first letter. */
+const LABEL_GAP = 7;
+/** Ink extent of one line at LABEL_SIZE, plus a little padding. Collision only. */
+const LABEL_ABOVE = 10;
+const LABEL_BELOW = 5;
+const LABEL_PAD = 3;
+/** Baseline offsets to try, in order: centred first, then nudged off the axis. */
+const LABEL_DY = [4, -9, 17, -21, 29];
+const LABEL_FONT = `${LABEL_SIZE}px 'Inter Variable', Inter, -apple-system, sans-serif`;
+
+type Box = { x0: number; y0: number; x1: number; y1: number };
+type Anchor = 'start' | 'end';
+type Placement = { id: string; text: string; x: number; y: number; anchor: Anchor };
+
+const VIEW_BOX: Box = {
+  x0: VIEW.minX,
+  y0: VIEW.minY,
+  x1: VIEW.minX + VIEW.w,
+  y1: VIEW.minY + VIEW.h,
+};
+
+const area = (b: Box) => (b.x1 - b.x0) * (b.y1 - b.y0);
+
+const overlap = (a: Box, b: Box) =>
+  Math.max(0, Math.min(a.x1, b.x1) - Math.max(a.x0, b.x0)) *
+  Math.max(0, Math.min(a.y1, b.y1) - Math.max(a.y0, b.y0));
+
+/** Measured where we can, estimated on the server. Cached — titles are stable. */
+const widths = new Map<string, number>();
+let measurer: CanvasRenderingContext2D | null | undefined;
+
+function textWidth(s: string) {
+  const hit = widths.get(s);
+  if (hit !== undefined) return hit;
+
+  if (measurer === undefined) {
+    measurer = typeof document === 'undefined' ? null : document.createElement('canvas').getContext('2d');
+    if (measurer) measurer.font = LABEL_FONT;
+  }
+  const w = measurer ? measurer.measureText(s).width : s.length * LABEL_SIZE * 0.53;
+  widths.set(s, w);
+  return w;
+}
+
+/**
+ * Labels are the one part of the drawing the force layout can't help with: two
+ * marks can sit a comfortable distance apart and still have their names collide.
+ * So place them greedily, most important first, trying each side and a few
+ * vertical nudges, and take the arrangement that costs the least — overlapping
+ * another label is worst, covering a lit mark next, leaving the frame last.
+ * There is always a placement; a bad one still reads thanks to the paper halo.
+ */
+function placeLabels(
+  items: { id: string; text: string; x: number; y: number; r: number }[],
+  discs: { id: string; x: number; y: number; r: number; lit: boolean }[],
+): Placement[] {
+  const placed: Box[] = [];
+  const out: Placement[] = [];
+
+  for (const item of items) {
+    const w = textWidth(item.text);
+    // Long titles on the right edge would run off the frame; start on the left.
+    const sides: Anchor[] =
+      item.x + item.r + LABEL_GAP + w > VIEW_BOX.x1 ? ['end', 'start'] : ['start', 'end'];
+
+    let best: { p: Placement; box: Box; cost: number } | null = null;
+    let tried = 0;
+
+    for (const dy of LABEL_DY) {
+      for (const anchor of sides) {
+        const gap = item.r + LABEL_GAP;
+        const x = anchor === 'start' ? item.x + gap : item.x - gap;
+        const y = item.y + dy;
+        const left = anchor === 'start' ? x : x - w;
+        const box: Box = {
+          x0: left - LABEL_PAD,
+          x1: left + w + LABEL_PAD,
+          y0: y - LABEL_ABOVE,
+          y1: y + LABEL_BELOW,
+        };
+
+        // Prefer earlier candidates, all else equal.
+        let cost = tried++ * 2;
+        for (const b of placed) cost += overlap(box, b) * 4;
+        for (const d of discs) {
+          if (d.id === item.id) continue;
+          const square: Box = { x0: d.x - d.r, y0: d.y - d.r, x1: d.x + d.r, y1: d.y + d.r };
+          cost += overlap(box, square) * (d.lit ? 2 : 0.4);
+        }
+        cost += area(box) - overlap(box, VIEW_BOX);
+
+        const p: Placement = { id: item.id, text: item.text, x, y, anchor };
+        if (!best || cost < best.cost) best = { p, box, cost };
+        if (cost === 0) break;
+      }
+      if (best?.cost === 0) break;
+    }
+
+    if (best) {
+      placed.push(best.box);
+      out.push(best.p);
+    }
+  }
+
+  return out;
+}
 
 /** Monochrome subject glyph, scaled to keep an even stroke at any node size. */
 function Glyph({ name, size, color }: { name: string; size: number; color: string }) {
@@ -216,6 +324,36 @@ export default function Graph({ data }: { data: GraphData }) {
 
   const isLit = (id: string) => !focus || focus.has(id);
 
+  // Labels only exist while something is selected, so lay them out from scratch
+  // each tick rather than trying to animate them into place.
+  const labels = useMemo(() => {
+    if (!focus) return [];
+
+    const discs = data.nodes.flatMap((n) => {
+      const p = positions[n.id];
+      return p ? [{ id: n.id, x: p.x, y: p.y, r: n.r, lit: focus.has(n.id) }] : [];
+    });
+
+    const items = data.nodes
+      .filter((n) => focus.has(n.id) && positions[n.id])
+      // The hovered mark gets first pick, then the heaviest.
+      .sort(
+        (a, b) =>
+          (a.id === hovered ? -1 : b.id === hovered ? 1 : 0) ||
+          b.r - a.r ||
+          a.id.localeCompare(b.id),
+      )
+      .map((n) => ({
+        id: n.id,
+        text: truncate(n.title, 42),
+        x: positions[n.id].x,
+        y: positions[n.id].y,
+        r: n.r,
+      }));
+
+    return placeLabels(items, discs);
+  }, [focus, hovered, positions, data.nodes]);
+
   const caption = useMemo(() => {
     if (hovered) return <NodeCaption node={byId[hovered]} data={data} />;
     if (domain) {
@@ -229,15 +367,17 @@ export default function Graph({ data }: { data: GraphData }) {
         </>
       );
     }
-    return <span style={{ color: 'var(--ink-soft)' }}>Nothing selected — hover any mark above.</span>;
+    return <span style={{ color: 'var(--ink-soft)' }}>Nothing selected — hover any mark.</span>;
   }, [hovered, domain, byId, data, focus]);
 
   return (
-    <div>
+    <div className="graph-layout">
+      <div className="graph-stage">
       <svg
         viewBox={`${VIEW.minX} ${VIEW.minY} ${VIEW.w} ${VIEW.h}`}
         width="100%"
-        style={{ display: 'block', height: 'auto', overflow: 'visible' }}
+        height="100%"
+        style={{ display: 'block', overflow: 'visible' }}
         role="img"
         aria-label={`${data.nodes.length} entries connected by ${data.edges.length} relationships`}
         onMouseLeave={() => setHovered(null)}
@@ -287,7 +427,6 @@ export default function Graph({ data }: { data: GraphData }) {
             if (!p) return null;
             const lit = isLit(n.id);
             const opacity = lit ? freshnessOpacity(n.factor) : DIM;
-            const showLabel = lit && (hovered === n.id || (focus !== null && focus.has(n.id)));
 
             return (
               <g
@@ -314,45 +453,39 @@ export default function Graph({ data }: { data: GraphData }) {
                 <Mark type={n.type} r={n.r} icon={n.icon} />
                 {/* Invisible generous hit area — the marks are small on purpose. */}
                 <circle r={Math.max(n.r + 8, 14)} fill="transparent" />
-                {showLabel && (
-                  <text
-                    x={n.r + 7}
-                    y={4}
-                    fontSize={11}
-                    fill="var(--ink-soft)"
-                    style={{ pointerEvents: 'none' }}
-                  >
-                    {truncate(n.title, 42)}
-                  </text>
-                )}
               </g>
             );
           })}
         </g>
+
+        {/* Above every mark, so a name is never half-covered by a later node. */}
+        <g style={{ pointerEvents: 'none' }} fontSize={LABEL_SIZE}>
+          {labels.map((l) => (
+            <text
+              key={l.id}
+              x={l.x}
+              y={l.y}
+              textAnchor={l.anchor}
+              fill={l.id === hovered ? 'var(--ink)' : 'var(--ink-soft)'}
+              // Paper halo: where a crossing is unavoidable, the name still reads.
+              stroke={PAPER}
+              strokeWidth={3.5}
+              strokeLinejoin="round"
+              style={{ paintOrder: 'stroke' }}
+            >
+              {l.text}
+            </text>
+          ))}
+        </g>
       </svg>
+      </div>
 
-      <p
-        style={{
-          minHeight: '4.5rem',
-          margin: '1.5rem auto 0',
-          maxWidth: '30rem',
-          textAlign: 'center',
-          fontSize: 14,
-        }}
-      >
-        {caption}
-      </p>
+      <aside className="graph-panel">
+      {/* Empty state sinks to the bottom of the reserved box, so an idle panel
+          reads as breathing room rather than as a hole above the filters. */}
+      <p className={`graph-caption${hovered || domain ? '' : ' is-empty'}`}>{caption}</p>
 
-      <hr className="hairline" style={{ margin: '2.5rem 0 1.5rem' }} />
-
-      <div
-        style={{
-          display: 'flex',
-          flexWrap: 'wrap',
-          gap: '0.5rem',
-          justifyContent: 'center',
-        }}
-      >
+      <div className="graph-filters">
         {DOMAINS.map((d) => {
           const active = domain === d;
           const count = data.domainCounts[d] ?? 0;
@@ -380,14 +513,126 @@ export default function Graph({ data }: { data: GraphData }) {
         })}
       </div>
 
-      <Legend />
+      <Recent nodes={data.nodes} />
+      <About nodes={data.nodes.length} edges={data.edges.length} />
+      </aside>
     </div>
   );
 }
 
+/**
+ * The count and the key, at the foot of the column. In the panel rather than
+ * across the page bottom because that row of height is worth more to the drawing.
+ */
+function About({ nodes, edges }: { nodes: number; edges: number }) {
+  return (
+    <div className="graph-about">
+      <p className="meta">
+        {nodes} entries · {edges} connections
+      </p>
+      <details>
+        <summary className="meta">What this is</summary>
+        <p>
+          Every mark is one thing I believe, remember, value, hold an opinion about, or
+          live with. Weight pulls the important ones toward the middle, so what you see
+          first is what matters most rather than what happened most recently. The lines
+          are connections I drew on purpose — including the uncomfortable ones.
+        </p>
+        <p>
+          The container says which kind of thing it is: a filled disc is a value, an
+          outlined one a belief, a dotted one an opinion, a ringed one a condition I live
+          with now, and a bare glyph a memory. Marks fade as they go unconsidered.
+        </p>
+      </details>
+    </div>
+  );
+}
+
+/**
+ * What has moved lately. The graph is deliberately arranged by weight rather than
+ * recency, so this is the one place newness gets to speak — a footnote, not the
+ * organising principle.
+ */
+function Recent({ nodes }: { nodes: GraphNode[] }) {
+  const items = useMemo(() => {
+    const byRecency = [...nodes].sort((a, b) => b.reaffirmed.localeCompare(a.reaffirmed));
+    // Dates are formatted against the newest entry, never against `now`: the page
+    // is prerendered, and a clock-dependent label would differ after hydration.
+    const latestYear = new Date(byRecency[0]?.reaffirmed ?? Date.now()).getUTCFullYear();
+    return byRecency.slice(0, 5).map((n) => {
+      const d = new Date(n.reaffirmed);
+      return {
+        id: n.id,
+        title: n.title,
+        icon: n.icon,
+        when: d.toLocaleDateString('en-US',
+          d.getUTCFullYear() === latestYear
+            ? { month: 'short', day: 'numeric', timeZone: 'UTC' }
+            : { month: 'short', year: 'numeric', timeZone: 'UTC' },
+        ),
+      };
+    });
+  }, [nodes]);
+
+  return (
+    <section className="graph-recent">
+      <h2 className="meta">Recently updated</h2>
+      <ul>
+        {items.map((n) => (
+          <li key={n.id}>
+            <a href={`/e/${n.id}/`}>
+              {n.icon && ICONS[n.icon] ? (
+                <svg
+                  viewBox={`0 0 ${ICON_VIEWBOX} ${ICON_VIEWBOX}`}
+                  width="15"
+                  height="15"
+                  fill="none"
+                  stroke="currentColor"
+                  strokeWidth={1.6}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  aria-hidden="true"
+                  dangerouslySetInnerHTML={{ __html: ICONS[n.icon] }}
+                />
+              ) : (
+                <span className="dot" aria-hidden="true" />
+              )}
+              <span className="label">{n.title}</span>
+              <span className="when">{n.when}</span>
+            </a>
+          </li>
+        ))}
+      </ul>
+    </section>
+  );
+}
+
+/** Relation order in the caption: tensions first, they are the point. */
+const CAPTION_ORDER = ['tension', 'expresses', 'echoes'] as const;
+
 function NodeCaption({ node, data }: { node: GraphNode | undefined; data: GraphData }) {
   if (!node) return null;
   const links = data.edges.filter((e) => e.source === node.id || e.target === node.id);
+
+  /**
+   * Grouped by relation and run inline, so the label is said once and a
+   * seven-connection node still costs two lines rather than seven.
+   */
+  const groups = CAPTION_ORDER.flatMap((relation) => {
+    const inRelation = links
+      .filter((e) => e.relation === relation)
+      .map((e) => ({
+        label: e.target === node.id && e.directed ? 'expressed by' : RELATION_LABEL[e.relation],
+        title:
+          data.nodes.find((n) => n.id === (e.source === node.id ? e.target : e.source))?.title ??
+          '',
+      }));
+    return [...new Set(inRelation.map((e) => e.label))].map((label) => ({
+      relation,
+      label,
+      titles: inRelation.filter((e) => e.label === label).map((e) => e.title),
+    }));
+  });
 
   return (
     <>
@@ -410,66 +655,33 @@ function NodeCaption({ node, data }: { node: GraphNode | undefined; data: GraphD
       <span className="meta" style={{ display: 'block', marginTop: node.statement ? 0 : '0.35rem' }}>
         {TYPE_LABEL[node.type]} · {DOMAIN_LABEL[node.domain]} · weight {node.weight}
       </span>
-      {links.length > 0 && (
+      {groups.length > 0 && (
         <span
           style={{
             display: 'block',
-            marginTop: '0.6rem',
+            marginTop: '0.5rem',
             fontSize: 13,
+            lineHeight: 1.5,
             color: 'var(--ink-soft)',
           }}
         >
-          {links.map((e, i) => {
-            const otherId = e.source === node.id ? e.target : e.source;
-            const other = data.nodes.find((n) => n.id === otherId);
-            const inbound = e.target === node.id && e.directed;
-            return (
-              <span key={e.id} style={{ display: 'block' }}>
-                {i === 0 ? '' : ''}
-                <em
-                  style={{
-                    fontStyle: 'normal',
-                    color: e.relation === 'tension' ? 'var(--rust)' : 'var(--ink-soft)',
-                  }}
-                >
-                  {inbound ? 'expressed by' : RELATION_LABEL[e.relation]}
-                </em>{' '}
-                {truncate(other?.title ?? otherId, 52)}
-              </span>
-            );
-          })}
+          {groups.map((g, i) => (
+            <span key={g.label}>
+              {i > 0 && <span style={{ color: 'var(--hairline)' }}> · </span>}
+              <em
+                style={{
+                  fontStyle: 'normal',
+                  color: g.relation === 'tension' ? 'var(--rust)' : 'var(--ink-soft)',
+                }}
+              >
+                {g.label}
+              </em>{' '}
+              {g.titles.join(', ')}
+            </span>
+          ))}
         </span>
       )}
     </>
-  );
-}
-
-function Legend() {
-  const items: EntryType[] = ['value', 'belief', 'memory', 'opinion', 'condition'];
-  return (
-    <ul
-      style={{
-        listStyle: 'none',
-        padding: 0,
-        margin: '1.5rem auto 0',
-        maxWidth: '32rem',
-        display: 'flex',
-        flexWrap: 'wrap',
-        gap: '0.5rem 1.5rem',
-        justifyContent: 'center',
-        fontSize: 12.5,
-        color: 'var(--ink-soft)',
-      }}
-    >
-      {items.map((t) => (
-        <li key={t} style={{ display: 'flex', alignItems: 'center', gap: '0.5rem' }}>
-          <svg width={26} height={26} viewBox="-13 -13 26 26" aria-hidden="true">
-            <Mark type={t} r={9} icon="leaf" />
-          </svg>
-          <span title={TYPE_NOTE[t]}>{TYPE_LABEL[t]}</span>
-        </li>
-      ))}
-    </ul>
   );
 }
 

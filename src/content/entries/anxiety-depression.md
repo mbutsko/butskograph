@@ -22,7 +22,7 @@ edges:
     relation: echoes
     note: "compulsion all day alongside the inability to take pleasure in much"
 source: Site/Anxiety & Depression.md
-sourceModified: 2026-08-08T12:17:11.226Z
+sourceModified: 2026-09-05T20:16:25.204Z
 ---
 
 I first remember having a panic attack (for lack of a more fitting name),  at the age of 16 (almost 17) in a very social situation. In the years that followed, I would have frequent, crippling episodes like this. I fell into depression, and eventually tried Zoloft for a period of a few months. I don't really remember anything specifically lifting me out of it, but I made the transition to college. Now I still have these episodes a few time a year. It isn't at all the same as how other people describe panic attacks -- I do feel overwhelmed, but rather than sweaty and heart racing, I just kind of get tunnel vision and feel very awkward and just kinda want to go to sleep. 

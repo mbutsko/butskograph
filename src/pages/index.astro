@@ -9,75 +9,11 @@ const data = buildGraph(entries);
 ---
 
 <Base
+  full
   title="Mike Butsko"
   description="Beliefs, memories, opinions and values, arranged by what matters most rather than by what is newest."
 >
-  <!-- No headline. The graph is the hero; the one serif moment is the
-       statement under the cursor. -->
-  <main>
-    <Graph data={data} client:load />
-  </main>
-
-  <footer>
-    <hr class="hairline" />
-    <div class="row">
-      <p class="meta count">
-        {data.nodes.length} entries · {data.edges.length} connections
-      </p>
-      <details>
-        <summary class="meta">What this is</summary>
-        <p>
-          Every mark is one thing I believe, remember, value, hold an opinion about, or
-          live with. Weight pulls the important ones toward the middle, so what you see
-          first is what matters most rather than what happened most recently. The lines
-          are connections I drew on purpose — including the uncomfortable ones.
-        </p>
-      </details>
-    </div>
-  </footer>
+  <!-- No headline, and no page furniture. The graph is the hero; everything that
+       reads as text lives in its margin column, so the drawing gets the height. -->
+  <Graph data={data} client:load />
 </Base>
-
-<style>
-  main {
-    padding-top: 1rem;
-  }
-  footer {
-    margin-top: 5rem;
-  }
-  .row {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.75rem 2rem;
-    align-items: baseline;
-    justify-content: space-between;
-    margin-top: 1.25rem;
-  }
-  .count {
-    margin: 0;
-  }
-  details {
-    max-width: var(--measure);
-  }
-  summary {
-    cursor: pointer;
-    list-style: none;
-    color: var(--ink-soft);
-  }
-  summary::-webkit-details-marker {
-    display: none;
-  }
-  summary:hover {
-    color: var(--ink);
-  }
-  summary::after {
-    content: ' +';
-  }
-  details[open] summary::after {
-    content: ' –';
-  }
-  details p {
-    margin: 0.85rem 0 0;
-    font-size: 14px;
-    color: var(--ink-soft);
-  }
-</style>

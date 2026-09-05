@@ -1,6 +1,6 @@
 ---
 title: "Marriage"
-statement: "My life partner is my also my best friend and the central person in my life. It makes me feel good to be on a team with her, and to do nice things for her."
+statement: "My life partner is my also my best friend and the central person in my life."
 icon: heart-handshake
 domain: family
 type: value
@@ -10,7 +10,9 @@ edges:
   - target: human-connection
     relation: echoes
 source: Site/Marriage.md
-sourceModified: 2026-08-02T14:17:37.489Z
+sourceModified: 2026-09-05T20:37:47.970Z
 ---
+
+It makes me feel good to be on a team with her, and to do nice things for her. We have been married for 14 years which is pretty close to 1/3 of my life! She is amazing and provides much needed balance for me.
 
 I respect everyone's right to spend their lives with whoever makes them happy. The might be one person, or many people, or multiple people at the same time. It might be men or women and people without genders. You might just have pets. Whatever, just be happy.
