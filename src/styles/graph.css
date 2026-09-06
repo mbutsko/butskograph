@@ -1,0 +1,218 @@
+/*
+ * Layout for the graph screen. Global rather than Astro-scoped: the elements are
+ * rendered by the React island, so scoped attributes never reach them.
+ *
+ * The drawing wants height — it is a radial arrangement, near square — and the
+ * page wants to fit one screen. So the reading matter (caption, filters, legend)
+ * moves into a margin column, the same idiom the entry pages use, and the
+ * drawing takes the full height with whatever width is left.
+ */
+
+.graph-layout {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 19rem;
+  gap: 0 3rem;
+  align-items: start;
+}
+
+.graph-stage {
+  /* Only the shell's own padding is subtracted — nothing else is below it. */
+  height: clamp(22rem, calc(100svh - 2.75rem), 62rem);
+}
+
+/* A tap should not leave the browser's blue rectangle behind. Keyboard focus still
+   gets a ring, in ink, because a keyboard user has nothing else to go on. */
+.graph-stage g[role='link']:focus {
+  outline: none;
+}
+
+.graph-stage g[role='link']:focus-visible {
+  outline: 1.5px solid var(--ink);
+  outline-offset: 4px;
+}
+
+.graph-panel {
+  display: flex;
+  flex-direction: column;
+  /* Optically level with the top of the drawing. */
+  padding-top: 0.5rem;
+}
+
+/*
+ * Fixed height, not min-height: moving the cursor from a lone mark to one with
+ * seven connections must not shove the filters and legend down the column.
+ */
+.graph-open {
+  display: inline-block;
+  margin-top: 0.7rem;
+  font-size: 13px;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--hairline);
+  text-underline-offset: 3px;
+}
+
+.graph-open:hover {
+  text-decoration-color: var(--ink-soft);
+}
+
+.graph-caption {
+  height: 14.5rem;
+  overflow: hidden;
+  margin: 0 0 1.25rem;
+  font-size: 14.5px;
+  display: flex;
+  flex-direction: column;
+}
+
+.graph-caption.is-empty {
+  justify-content: flex-end;
+}
+
+.graph-filters {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+  padding-top: 1.25rem;
+  border-top: 1px solid var(--hairline);
+}
+
+.graph-recent {
+  padding-top: 1.25rem;
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--hairline);
+}
+
+.graph-recent h2 {
+  margin: 0 0 0.7rem;
+}
+
+.graph-recent ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.graph-recent li + li {
+  margin-top: 0.55rem;
+}
+
+.graph-recent a {
+  display: flex;
+  align-items: baseline;
+  gap: 0.5rem;
+  font-size: 13.5px;
+  line-height: 1.35;
+  text-decoration: none;
+  color: var(--ink);
+}
+
+.graph-recent a svg {
+  flex: none;
+  /* Baseline-align the glyph with the first line of the title. */
+  transform: translateY(2px);
+  color: var(--ink-soft);
+}
+
+.graph-recent a:hover svg {
+  color: var(--ink);
+}
+
+.graph-recent .label {
+  text-decoration: underline;
+  text-decoration-color: var(--hairline);
+  text-underline-offset: 3px;
+}
+
+.graph-recent a:hover .label {
+  text-decoration-color: var(--ink-soft);
+}
+
+/* Pushed to the far edge so the dates line up as a column of their own. */
+.graph-recent .when {
+  margin-left: auto;
+  padding-left: 0.5rem;
+  flex: none;
+  font-size: 11.5px;
+  color: var(--ink-soft);
+}
+
+.graph-recent .dot {
+  flex: none;
+  width: 5px;
+  height: 5px;
+  border-radius: 50%;
+  background: var(--ink-soft);
+  transform: translateY(-3px);
+}
+
+.graph-about {
+  padding-top: 1.25rem;
+  margin-top: 1.25rem;
+  border-top: 1px solid var(--hairline);
+}
+
+.graph-about .meta {
+  margin: 0;
+}
+
+.graph-about summary {
+  cursor: pointer;
+  list-style: none;
+  color: var(--ink-soft);
+  margin-top: 0.5rem;
+}
+
+.graph-about summary::-webkit-details-marker {
+  display: none;
+}
+
+.graph-about summary:hover {
+  color: var(--ink);
+}
+
+.graph-about summary::after {
+  content: ' +';
+}
+
+.graph-about details[open] summary::after {
+  content: ' –';
+}
+
+.graph-about details p {
+  margin: 0.7rem 0 0;
+  font-size: 13px;
+  color: var(--ink-soft);
+}
+
+/* Narrow: stack it, let the page scroll, and give the drawing the width. */
+@media (max-width: 62rem) {
+  .graph-layout {
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .graph-stage {
+    height: auto;
+    aspect-ratio: 700 / 640;
+  }
+  .graph-panel {
+    padding-top: 1.5rem;
+  }
+  /* No reserved height here: on a touch screen a tap navigates rather than
+     hovering, so the caption is usually the one empty line — and reserving room
+     for a caption that rarely fills just puts a hole under the drawing. */
+  .graph-caption {
+    height: auto;
+    min-height: 1.5rem;
+    text-align: center;
+    max-width: 34rem;
+    margin-inline: auto;
+  }
+  .graph-filters {
+    justify-content: center;
+  }
+  .graph-recent,
+  .graph-about {
+    max-width: 22rem;
+    margin-inline: auto;
+  }
+}

@@ -6,9 +6,11 @@ import '../styles/tokens.css';
 interface Props {
   title: string;
   description?: string;
+  /** One-screen pages (the graph) trade the long bottom margin for fitting. */
+  full?: boolean;
 }
 
-const { title, description } = Astro.props;
+const { title, description, full = false } = Astro.props;
 
 /**
  * Cloudflare Web Analytics. Baked in at build time, so it is only present when the
@@ -28,7 +30,7 @@ const beacon = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
     <link rel="icon" href="/favicon.svg" type="image/svg+xml" />
   </head>
   <body>
-    <div class="shell">
+    <div class:list={['shell', { full }]}>
       <slot />
     </div>
     <style>
@@ -38,9 +40,20 @@ const beacon = import.meta.env.PUBLIC_CF_BEACON_TOKEN;
         margin: 0 auto;
         padding: 3.5rem 1.5rem 6rem;
       }
+      /* The graph screen: wider than the prose measure, because the drawing gets
+         the width the reading matter does not need, and short on padding, because
+         a long tail of it is the difference between fitting one screen and not. */
+      .shell.full {
+        max-width: 94rem;
+        padding-top: 1.5rem;
+        padding-bottom: 1.25rem;
+      }
       @media (max-width: 40rem) {
         .shell {
           padding: 2rem 1rem 4rem;
+        }
+        .shell.full {
+          padding-bottom: 1.5rem;
         }
       }
     </style>

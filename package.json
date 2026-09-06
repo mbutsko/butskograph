@@ -6,6 +6,7 @@
   "scripts": {
     "sync": "node scripts/sync-vault.mjs",
     "dev": "astro dev",
+    "prebuild": "rm -f .astro/data-store.json node_modules/.astro/data-store.json",
     "build": "astro build",
     "preview": "astro preview",
     "check": "astro check",

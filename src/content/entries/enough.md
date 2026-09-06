@@ -23,7 +23,7 @@ edges:
     relation: tension
     note: sobriety, same list
 source: Site/Enough.md
-sourceModified: 2026-07-26T16:37:11.005Z
+sourceModified: 2026-09-05T20:23:24.685Z
 ---
 
-I tend towards _extremes_ and . Veganism, atheism, sobriety, minimalism
+I tend towards _extremes_ -- veganism, atheism, sobriety, minimalism, not driving a car, etc. I like minimalism and simplicity. I enjoy taking simplicity itself to the extreme to demonstrate that what is _Enough_ is quite a bit less than most people think it is. Unfortunately, the more comfortable I get with minimalism, the more I am off the middle path. I haven't figured out how to reconcile this tension.

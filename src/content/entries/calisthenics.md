@@ -14,7 +14,7 @@ edges:
     relation: echoes
     note: each pared down over time — the gym to rings, the commute to the bus stop
 source: Site/Calisthenics.md
-sourceModified: 2026-08-08T12:27:17.901Z
+sourceModified: 2026-09-05T20:17:13.232Z
 ---
 
 For a long time, this meant going to the gym, but I've simplified my routing over time as I've learned to embrace [[Enough]]. Currently, my strength routine is every day, 7 days a week, picking 5 sets between:
@@ -22,3 +22,5 @@ For a long time, this meant going to the gym, but I've simplified my routing ove
 * pull day - ring pullups -- 13 or 14 (single set to failure) followed by dead hangs, one of 4 banded bicep curl variations
 * legs: shrimp squats, single leg deadlifts (with kettlebells), Bulgarian split squats (with kettlebells), wall sits, horse stance, cossack squats, calf raises
 * abs/whole body: side-lying leg lift, copenhagen plank/lift, band woodchopper, ball mountain climber, animal flow, Turkish getup
+
+I also walk an average of 12,300 steps per day and enjoy [[Running]] and [[Cycling]].
