@@ -1,5 +1,5 @@
 ---
-title: "GI  Health Woes"
+title: "GI Health Woes"
 statement: "Trapped Gas Pain is No Joke"
 icon: activity
 domain: body
@@ -10,7 +10,7 @@ edges:
   - target: food-obsession
     relation: tension
     note: "eating compulsively against a gut that punishes it"
-source: Site/GI  Health Woes.md
+source: Site/GI Health Woes.md
 sourceModified: 2026-09-05T20:46:27.881Z
 ---
 

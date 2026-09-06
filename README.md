@@ -50,6 +50,13 @@ as edges, since those are connections you already made by hand.
 `npm run sync` is the read-only scan on its own. Buckets: `NEW`, `DRIFTED`, `CURRENT`,
 `ORPHANED` (published, vault note renamed or deleted), `UNLINKED`, `EMPTY`.
 
+Always build with `npm run build`, never `astro build` directly. A `[[wikilink]]` resolves
+against the *other* entries, but Astro caches each entry's rendered HTML keyed on that file
+alone — so publishing a new entry leaves every existing page that links to it holding a
+stale render, with the link still flat text. The `prebuild` script drops both content data
+stores (`.astro/` and `node_modules/.astro/`) to force a full re-render. Deploys are safe
+either way, since CI builds from a clean checkout.
+
 ## The data model
 
 ```yaml

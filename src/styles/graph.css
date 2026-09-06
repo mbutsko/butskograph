@@ -20,6 +20,17 @@
   height: clamp(22rem, calc(100svh - 2.75rem), 62rem);
 }
 
+/* A tap should not leave the browser's blue rectangle behind. Keyboard focus still
+   gets a ring, in ink, because a keyboard user has nothing else to go on. */
+.graph-stage g[role='link']:focus {
+  outline: none;
+}
+
+.graph-stage g[role='link']:focus-visible {
+  outline: 1.5px solid var(--ink);
+  outline-offset: 4px;
+}
+
 .graph-panel {
   display: flex;
   flex-direction: column;
@@ -31,8 +42,22 @@
  * Fixed height, not min-height: moving the cursor from a lone mark to one with
  * seven connections must not shove the filters and legend down the column.
  */
+.graph-open {
+  display: inline-block;
+  margin-top: 0.7rem;
+  font-size: 13px;
+  color: var(--ink);
+  text-decoration: underline;
+  text-decoration-color: var(--hairline);
+  text-underline-offset: 3px;
+}
+
+.graph-open:hover {
+  text-decoration-color: var(--ink-soft);
+}
+
 .graph-caption {
-  height: 13rem;
+  height: 14.5rem;
   overflow: hidden;
   margin: 0 0 1.25rem;
   font-size: 14.5px;
@@ -172,10 +197,12 @@
   .graph-panel {
     padding-top: 1.5rem;
   }
+  /* No reserved height here: on a touch screen a tap navigates rather than
+     hovering, so the caption is usually the one empty line — and reserving room
+     for a caption that rarely fills just puts a hole under the drawing. */
   .graph-caption {
-    /* Tighter here: on a touch screen a tap navigates, so the caption rarely
-       fills, and a tall empty reservation reads as a hole in the page. */
-    height: 7rem;
+    height: auto;
+    min-height: 1.5rem;
     text-align: center;
     max-width: 34rem;
     margin-inline: auto;
